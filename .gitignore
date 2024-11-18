@@ -1,3 +1,7 @@
+# CVE Files
+cvelistV5/
+adjusted_cves/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
