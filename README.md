@@ -1,7 +1,3 @@
-Here’s the complete **README** content in Markdown format, ready for copy-pasting:
-
----
-
 # **CVSS Updater App**
 
 ---
