@@ -111,3 +111,64 @@ def fetch_cve_assignments(asset_id, db_name="assets_cves.db"):
     results = cursor.fetchall()
     conn.close()
     return results
+
+def fetch_environment_context(db_name="assets_cves.db"):
+    """Fetch all environment contexts from the database."""
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM environment_context")
+    results = cursor.fetchall()
+    conn.close()
+    return results
+
+def delete_environment_context(environment_id, db_name="assets_cves.db"):
+    """Delete an environment context by ID."""
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM environment_context WHERE id = ?", (environment_id,))
+    conn.commit()
+    conn.close()
+
+
+def delete_asset(asset_id, db_name="assets_cves.db"):
+    """Delete an asset by ID."""
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM assets WHERE id = ?", (asset_id,))
+    conn.commit()
+    conn.close()
+
+
+def delete_cve_assignment(cve_id, db_name="assets_cves.db"):
+    """Delete a CVE assignment by ID."""
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM cve_assignments WHERE id = ?", (cve_id,))
+    conn.commit()
+    conn.close()
+
+
+def update_environment_context(environment_id, sensitivity, segmentation, access_level, db_name="assets_cves.db"):
+    """Update an environment context by ID."""
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+    cursor.execute("""
+    UPDATE environment_context
+    SET data_sensitivity = ?, segmentation = ?, user_access_level = ?
+    WHERE id = ?
+    """, (sensitivity, segmentation, access_level, environment_id))
+    conn.commit()
+    conn.close()
+
+
+def update_asset(asset_id, asset_type, environment, public_exposure, critical, db_name="assets_cves.db"):
+    """Update an asset by ID."""
+    conn = sqlite3.connect(db_name)
+    cursor = conn.cursor()
+    cursor.execute("""
+    UPDATE assets
+    SET type = ?, environment = ?, public_exposure = ?, critical = ?
+    WHERE id = ?
+    """, (asset_type, environment, public_exposure, critical, asset_id))
+    conn.commit()
+    conn.close()
