@@ -1,4 +1,6 @@
 import streamlit as st
+from llm_integration import calculate_adjusted_score, recommend_adjusted_vector
+from utils import find_cve_file, load_cve_data
 from database import (
     bootstrap_db,
     fetch_assets,
@@ -100,9 +102,62 @@ elif page == "Manage Assets":
 
 # Associate CVEs Page
 elif page == "Associate CVEs":
+    st.session_state['base_score'], st.session_state['vector_string'] = "",""
     st.header("Associate CVEs with Assets")
     asset_id = st.number_input("Asset ID", step=1, min_value=1)
     cve_id = st.text_input("CVE ID")
-    original_score = st.number_input("Original CVSS Score", step=0.1, min_value=0.0, max_value=10.0)
-    adjusted_score = st.number_input("Adjusted CVSS Score", step=0.1, min_value=0.0, max_value=10.0)
-    rationale = st.text_area
+    if cve_id:
+        if st.button("Load CVE Data"):
+            cve_file = find_cve_file(cve_id)
+            if cve_file:
+                try:
+                    st.session_state['base_score'], st.session_state['vector_string'] = load_cve_data(cve_file)
+                    st.success(f"Original CVSS Base Score: {st.session_state['base_score']} and Vector String: {st.session_state['vector_string']}")
+                except Exception as e:
+                    st.error(f"Error loading CVE data: {e}")
+    if st.button(f"Associate CVE {cve_id}"):
+        insert_cve_assignment(asset_id, cve_id, st.session_state['base_score'], st.session_state['base_score'], "")
+        st.success("CVE associated.")
+    
+    
+
+# Example LLM Recommendation Flow
+elif page == "Recommend Adjusted Scores":
+    st.header("Recommend Adjusted CVSS Scores")
+    cve_id = st.text_input("CVE ID for Recommendation")
+    asset_id = st.number_input("Asset ID for Recommendation", step=1, min_value=1)
+
+    if st.button("Recommend Adjusted Score"):
+        # Fetch CVE, asset, and environment data from the database
+        cve_data = {
+            "cve_id": cve_id,
+            "description": "Example description for the CVE.",
+            "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H"
+        }
+        asset_data = {
+            "type": "virtual machine",
+            "selinux_enabled": True,
+            "kernel_hardened": False,
+            "ports_open": "22,80,443",
+            "services_running": "ssh,nginx"
+        }
+        environment_data = {
+            "data_sensitivity": "high",
+            "segmentation": "public",
+            "user_access_level": "admin-only"
+        }
+
+        # Call the LLM function
+        try:
+            recommendation = recommend_adjusted_vector(cve_data, asset_data, environment_data)
+            adjusted_vector = recommendation["adjusted_vector"]
+            explanation = recommendation["explanation"]
+
+            # Calculate the adjusted score
+            adjusted_score = calculate_adjusted_score(adjusted_vector)
+
+            st.success(f"Recommended Adjusted Vector: {adjusted_vector}")
+            st.success(f"New Adjusted Score: {adjusted_score}")
+            st.markdown(f"**Explanation:** {explanation}")
+        except RuntimeError as e:
+            st.error(f"Error: {e}")
