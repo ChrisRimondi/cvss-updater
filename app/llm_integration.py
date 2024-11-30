@@ -1,35 +1,18 @@
-import openai
+from openai import OpenAI
 import json
 from cvss import CVSS3
 from dotenv import load_dotenv
 import os
 
 PROMPT_TEMPLATE = """
-You are a cybersecurity expert specializing in risk assessment. Your task is to recommend adjustments to the CVSS vector string for a given CVE based on contextual information about the asset and its environment. Consider the following factors when making recommendations:
+You are a cybersecurity expert specializing in risk assessment. Your task is to recommend adjustments to the CVSS vector string for a given CVE based on contextual information about the asset and its environment. Provide your output strictly in the following JSON format without any extra text or line breaks outside the JSON block:
 
-1. **CVE Information**: Analyze the base CVSS vector string, score, and description of the CVE.
-2. **Asset Configuration**: Consider the asset's type (e.g., container, VM, bare metal), whether SELinux or kernel hardening is enabled, and any open ports or running services.
-3. **Environment Context**: Factor in the data sensitivity (low, medium, high), segmentation (air-gapped, internal-only, public), and user access levels (e.g., admin-only, developers).
+{{
+  "adjusted_vector": "<updated CVSS vector string>",
+  "explanation": "<reason for the changes>"
+}}
 
-When adjusting the CVSS vector, ensure:
-- Any changes are based on the provided asset and environment details.
-- You explain the rationale for each change in the vector.
-
-**Input Details**:
-- CVE ID: {cve_id}
-- CVE Description: {cve_description}
-- Original CVSS Vector: {vector_string}
-- Asset Type: {asset_type}
-- SELinux Enabled: {selinux_enabled}
-- Kernel Hardened: {kernel_hardened}
-- Open Ports: {ports_open}
-- Running Services: {services_running}
-- Data Sensitivity: {data_sensitivity}
-- Segmentation: {segmentation}
-- User Access Level: {user_access_level}
-
-**Example Input and Output**:
-### Input
+### Example Input:
 - CVE ID: CVE-2024-1234
 - CVE Description: A critical vulnerability in a web application that allows remote code execution.
 - Original CVSS Vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H
@@ -42,13 +25,26 @@ When adjusting the CVSS vector, ensure:
 - Segmentation: public
 - User Access Level: admin-only
 
-### Example Output
-```json
-{
+### Example Output:
+{{
   "adjusted_vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:H/A:M",
   "explanation": "The Attack Complexity (AC) was changed from 'Low' to 'High' because SELinux is enabled, making exploitation more difficult. The Availability Impact (A) was reduced from 'High' to 'Medium' because the container's isolation limits the potential impact on other systems."
-}
+}}
+
+Now respond for the following input:
+- CVE ID: {cve_id}
+- CVE Description: {cve_description}
+- Original CVSS Vector: {vector_string}
+- Asset Type: {asset_type}
+- SELinux Enabled: {selinux_enabled}
+- Kernel Hardened: {kernel_hardened}
+- Open Ports: {ports_open}
+- Running Services: {services_running}
+- Data Sensitivity: {data_sensitivity}
+- Segmentation: {segmentation}
+- User Access Level: {user_access_level}
 """
+
 
 
 
@@ -62,48 +58,57 @@ def initialize_llm():
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY is not set in the environment.")
     
-    openai.api_key = api_key
+    return OpenAI(api_key=api_key)
+
 
 
 def recommend_adjusted_vector(cve_data, asset_data, environment_data):
     """
-    Recommend an adjusted CVSS vector string using an LLM.
+    Recommend an adjusted CVSS vector string using the OpenAI Chat API.
 
     Args:
-        cve_data (dict): Information about the CVE (e.g., ID, description, vector).
-        asset_data (dict): Information about the asset (e.g., type, SELinux status, ports, services).
-        environment_data (dict): Information about the environment (e.g., sensitivity, segmentation, access levels).
+        cve_data (dict): Information about the CVE.
+        asset_data (dict): Information about the asset.
+        environment_data (dict): Information about the environment.
 
     Returns:
         dict: A dictionary containing the adjusted vector and explanation.
     """
-    # Format the prompt with the provided data
+    # Format the prompt for the Chat API
     prompt = PROMPT_TEMPLATE.format(
-        cve_id=cve_data["cve_id"],
-        cve_description=cve_data["description"],
-        vector_string=cve_data["vector_string"],
-        asset_type=asset_data["type"],
-        selinux_enabled=asset_data["selinux_enabled"],
-        kernel_hardened=asset_data["kernel_hardened"],
-        ports_open=asset_data["ports_open"],
-        services_running=asset_data["services_running"],
-        data_sensitivity=environment_data["data_sensitivity"],
-        segmentation=environment_data["segmentation"],
-        user_access_level=environment_data["user_access_level"]
-    )
-    print(prompt)
-    try:
-        # Call the OpenAI API with the formatted prompt
-        response = openai.Completion.create(
-            engine="gpt-4o",  # Choose the appropriate model
-            prompt=prompt,
-            max_tokens=32000,
-            temperature=0.7
-        )
+    cve_id=cve_data.get("cve_id", "N/A"),
+    cve_description=cve_data.get("description", "N/A"),
+    vector_string=cve_data.get("vector_string", "N/A"),
+    asset_type=asset_data.get("type", "N/A"),
+    selinux_enabled=asset_data.get("selinux_enabled", False),
+    kernel_hardened=asset_data.get("kernel_hardened", False),
+    ports_open=asset_data.get("ports_open", "N/A"),
+    services_running=asset_data.get("services_running", "N/A"),
+    data_sensitivity=environment_data.get("data_sensitivity", "N/A"),
+    segmentation=environment_data.get("segmentation", "N/A"),
+    user_access_level=environment_data.get("user_access_level", "N/A")
+)
 
-        # Parse the response and return the JSON output
-        recommendation = response.choices[0].text.strip()
+    # OpenAI Chat API input
+    messages = [
+        {"role": "system", "content": "You are a cybersecurity expert specializing in CVSS vector adjustments."},
+        {"role": "user", "content": prompt}
+    ]
+
+    try:
+        # Call the Chat API
+        client = initialize_llm()
+        response = client.chat.completions.create(model="gpt-4o",  # Specify the model you want to use
+        messages=messages,
+        temperature=0.7,
+        max_tokens=10000)
+
+        # Parse the response
+        recommendation = response.choices[0].message.content.strip().strip("```").strip("json")
         return json.loads(recommendation)
+
+    except json.JSONDecodeError:
+        raise RuntimeError("Invalid response format. Ensure the LLM output matches the expected JSON format.")
     except Exception as e:
         raise RuntimeError(f"Error interacting with the LLM: {e}")
 
