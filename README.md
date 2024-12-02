@@ -1,152 +1,162 @@
-# **CVSS Updater App**
+Here’s an updated **README.md** for your GitHub repository, based on the work we’ve done:
 
 ---
 
-## **Overview**
+# CVSS Updater
 
-The **CVSS Updater App** is a user-friendly web application built using **Streamlit**. It allows users to:
-- Analyze CVE (Common Vulnerabilities and Exposures) data from the local `cvelistV5` repository.
-- View original CVSS (Common Vulnerability Scoring System) metrics.
-- Make adjustments to CVSS metrics based on contextual requirements.
-- Recalculate the CVSS base score dynamically.
-- Save the results, including adjusted metrics and rationale, to a JSON file.
+The **CVSS Updater** is a tool designed to dynamically adjust CVSS vector strings and scores for Common Vulnerabilities and Exposures (CVEs) based on the contextual data of assets and environments. By leveraging OpenAI's GPT models, the tool recommends updated CVSS vectors, providing detailed rationales for changes, and enables more accurate risk prioritization in real-world scenarios.
 
 ---
 
-## **Features**
+## Features
 
-- **Dynamic CVE Analysis**: Input a CVE ID and fetch its associated data (e.g., CVSS vector string and base score) from the local `cvelistV5` repository.
-- **Interactive Adjustments**: Modify CVSS metrics such as Attack Vector (AV), Attack Complexity (AC), and others through an intuitive interface.
-- **Recalculation of CVSS Score**: Automatically update the base score based on user adjustments.
-- **Save Results**: Export adjusted scores, vector strings, and rationales to a JSON file for further reference.
-- **Reference Sidebar**: Quickly understand CVSS metric abbreviations via an accessible sidebar.
+1. **Dynamic CVSS Adjustment**:
+   - Updates CVSS vector strings based on asset configurations and environment contexts.
+   - Recalculates scores using the updated vectors.
+
+2. **Integration with OpenAI's API**:
+   - Leverages LLMs for analyzing CVE data and recommending changes to the CVSS vector.
+   - Provides detailed explanations for adjustments.
+
+3. **Asset and Environment Management**:
+   - Add, edit, and delete environments and assets.
+   - Associate CVEs with assets for contextual risk assessment.
+
+4. **Database-Driven**:
+   - Tracks assets, environments, and CVEs using SQLite for easy extensibility and local testing.
+
+5. **Streamlit-Based UI**:
+   - Intuitive interface for managing environments, assets, and CVE associations.
+   - Dynamically recommends adjusted CVSS scores based on contextual data.
 
 ---
 
-## **Getting Started**
+## Installation
 
-### **Prerequisites**
+### Prerequisites
+- Python 3.8 or higher
+- [pipenv](https://pipenv.pypa.io/) or `pip`
+- OpenAI API key
 
-- Python 3.9 or later
-- Docker (optional, for running in a container)
-- A local copy of the [cvelistV5 repository](https://github.com/CVEProject/cvelistV5)
-
-### **Installation**
-
-#### **1. Clone the Project**
+### Clone the Repository
 ```bash
 git clone https://github.com/ChrisRimondi/cvss-updater.git
 cd cvss-updater
 ```
 
-#### **2. Install Dependencies**
+### Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-#### **3. Ensure `cvelistV5` Directory**
-- Copy the `cvelistV5` repository to the project directory or specify its path during Docker build.
+### Set Up OpenAI API Key
+1. Create a `.env` file in the root directory:
+   ```bash
+   touch .env
+   ```
+2. Add your OpenAI API key:
+   ```plaintext
+   OPENAI_API_KEY=your_openai_api_key
+   ```
 
 ---
 
-## **Usage**
+## Usage
 
-### **Run Locally**
+### Run the Streamlit Application
+```bash
+streamlit run app/streamlit_app.py
+```
 
-1. Launch the app:
-   ```bash
-   streamlit run cvss-updater.py
-   ```
-2. Open your browser and navigate to `http://localhost:8501`.
+### Access the Application
+Open your browser and go to:
+```
+http://localhost:8501
+```
 
-3. Input a CVE ID (e.g., `CVE-2024-12345`).
-4. View the CVSS base score and vector string.
-5. Adjust metrics as needed and provide rationale for changes.
-6. Recalculate the CVSS score and save results as a JSON file.
-
----
-
-### **Run with Docker**
-
-1. Build the Docker image:
-   ```bash
-   docker build -t streamlit-cvss-updater-app .
-   ```
-
-2. Run the container:
-   ```bash
-   docker run -p 8501:8501 streamlit-cvss-updater-app
-   ```
-
-3. Access the app in your browser at `http://localhost:8501`.
+### Features in the UI
+- **Manage Environments**:
+  - Add, edit, and delete environments with contextual data like sensitivity, segmentation, and user access levels.
+- **Manage Assets**:
+  - Add, edit, and delete assets with attributes like type (e.g., container, VM), SELinux status, and open ports.
+- **Associate CVEs**:
+  - Link CVEs to assets and optionally provide rationales for manual adjustments.
+- **Recommend Adjusted CVSS**:
+  - Generate adjusted CVSS vector strings dynamically based on contextual data using OpenAI.
 
 ---
 
-## **File Structure**
+## Configuration
 
+### Database
+The application uses an SQLite database (`assets_cves.db`) to store:
+- Assets
+- Environments
+- CVE associations
+
+The database schema is automatically created on the first run.
+
+---
+
+## Development
+
+### Project Structure
 ```plaintext
 cvss-updater/
-├── Dockerfile           # Docker configuration for containerizing the app
-├── requirements.txt     # Python dependencies
-├── streamlit_app.py     # Streamlit app code
-├── cvelistV5/           # Local copy of the CVE database (not included in repo)
-├── README.md            # Documentation for the project
+├── app/
+│   ├── __init__.py              # Marks the package
+│   ├── database.py              # Database schema and CRUD operations
+│   ├── llm_integration.py       # Functions for interacting with OpenAI API
+│   ├── streamlit_app.py         # Main Streamlit application
+│   ├── utils.py                 # Helper functions
+├── cvelistV5/                   # Local copy of the CVE list (if applicable)
+├── .env                         # Environment variables (OpenAI API key)
+├── requirements.txt             # Python dependencies
+├── Dockerfile                   # Docker configuration
+├── README.md                    # Project documentation
 ```
+
+### Run Tests
+You can add and execute tests using a framework like `pytest`.
 
 ---
 
-## **Features in Detail**
+## Contribution
 
-### **CVSS Metrics**
-The app allows adjustment of the following metrics:
+### Feature Ideas
+- **Automated CVE Ingestion**: Integrate with external sources (e.g., NVD) to auto-populate CVEs.
+- **Dashboard Enhancements**: Add visualizations for adjusted scores and associated rationales.
+- **Custom Policies**: Enable custom weighting for specific CVSS metrics.
 
-| Metric       | Description                                                                                   | Values       |
-|--------------|-----------------------------------------------------------------------------------------------|--------------|
-| **AV**       | Attack Vector: How the vulnerability can be exploited.                                        | `N`, `A`, `L`, `P` |
-| **AC**       | Attack Complexity: Difficulty to exploit the vulnerability.                                   | `L`, `H`     |
-| **PR**       | Privileges Required: Level of privileges needed by the attacker.                              | `N`, `L`, `H` |
-| **UI**       | User Interaction: Whether user action is required for exploitation.                           | `N`, `R`     |
-| **S**        | Scope: Impact of the exploit on other components.                                             | `U`, `C`     |
-| **C**        | Confidentiality Impact: Impact on confidentiality of information.                             | `N`, `L`, `H` |
-| **I**        | Integrity Impact: Impact on integrity of data or systems.                                     | `N`, `L`, `H` |
-| **A**        | Availability Impact: Impact on availability of resources.                                     | `N`, `L`, `H` |
-
----
-
-## **Saving Results**
-
-The app generates a JSON file with the following details:
-- **Original Base Score**
-- **Adjusted Base Score**
-- **Adjusted CVSS Vector String**
-- **Rationale for Adjustments**
-
-The file is saved in a subdirectory (adjusted_cves/) of the app directory with the format:
-```
-<CVE-ID>_adjusted.json
-```
-
----
-
-## **Contributing**
-
-Contributions are welcome! Please:
+### How to Contribute
 1. Fork the repository.
-2. Create a feature branch.
-3. Submit a pull request with your changes.
+2. Create a new branch:
+   ```bash
+   git checkout -b feature-name
+   ```
+3. Commit changes:
+   ```bash
+   git commit -m "Added new feature"
+   ```
+4. Push changes to your fork:
+   ```bash
+   git push origin feature-name
+   ```
+5. Open a Pull Request.
 
 ---
 
-## **License**
+## License
 
-This project is licensed under the [MIT License](LICENSE).
-
----
-
-## **Contact**
-
-For questions or support, please contact [Your Name](mailto:your-email@example.com).
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
 
-Feel free to replace placeholders like `your-repo` or `Your Name` with your actual information. Let me know if you need further adjustments! 🚀
+## Acknowledgments
+
+- **OpenAI**: For providing GPT models to power the CVSS adjustments.
+- **NVD (National Vulnerability Database)**: For CVE data standards and CVSS resources.
+
+---
+
+Let me know if you'd like further refinements or additional sections! 🚀
